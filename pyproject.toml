@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whose-mean"
+version = "1.0.0"
+description = "Interactive pix2pix mean-image artwork using NGA open-access works"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Peiyan Zou" }]
+dependencies = [
+  "numpy>=1.26",
+  "Pillow>=10",
+  "torch>=2.6",
+]
+
+[project.scripts]
+whose-mean = "whose_mean.app:main"
+whose-mean-data = "whose_mean.data:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

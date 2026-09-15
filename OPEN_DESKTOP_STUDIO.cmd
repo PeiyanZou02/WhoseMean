@@ -5,4 +5,5 @@ if not exist ".venv\Scripts\pythonw.exe" (
   pause
   exit /b 1
 )
-start "Whose Mean Desktop" ".venv\Scripts\pythonw.exe" "desktop_studio.py"
+set "PYTHONPATH=%~dp0src"
+start "Whose Mean Desktop" ".venv\Scripts\pythonw.exe" -m whose_mean.app

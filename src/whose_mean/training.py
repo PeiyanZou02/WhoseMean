@@ -1,6 +1,4 @@
 """Background 512x512 pix2pix training for the local interactive studio."""
-import argparse
-import io
 import json
 import math
 import os
@@ -8,7 +6,6 @@ import re
 import threading
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -16,7 +13,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from nga_pipeline import DATA, IMAGES, OUT, Generator512, Discriminator512, load_records, square, edge_loss
+from .data import DATA, IMAGES, OUT, load_records, square
+from .model import Discriminator512, Generator512, edge_loss
 
 LIVE=OUT/'live'
 _thread=None
@@ -242,45 +240,3 @@ def _run(run_id,excluded,epochs,prompt,structure):
     except Exception as error:
         state.update({'state':'error','message':f'{type(error).__name__}: {error}'})
         _write(LIVE/'current.json',state)
-
-
-def export_current_results():
-    state=status();run=LIVE/str(state.get('run_id',''))
-    records_file=run/'records.json';model_file=run/'model_latest.pt'
-    if not records_file.exists() or not model_file.exists(): raise ValueError('The current run cannot be exported.')
-    wanted=[int(item['id']) for item in json.loads(records_file.read_text(encoding='utf-8'))]
-    record_map={int(record['objectid']):record for record in load_records()}
-    records=[record_map[object_id] for object_id in wanted]
-    device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model=Generator512().to(device).eval()
-    model.load_state_dict(torch.load(model_file,map_location=device,weights_only=True))
-    folder=run/'generated';folder.mkdir(exist_ok=True)
-    for index,record in enumerate(records,1):
-        source,_=_pair(record)
-        with torch.inference_mode(),torch.autocast('cuda',dtype=torch.float16,enabled=device.type=='cuda'):
-            result=model(source.unsqueeze(0).to(device)).float().cpu()
-        Image.fromarray(_rgb(result)).save(folder/f"{record['objectid']}.jpg",quality=92,optimize=True)
-        print(f'Exported {index}/{len(records)}',flush=True)
-    return len(records)
-
-
-if __name__=='__main__':
-    parser=argparse.ArgumentParser(description='Run a standalone concept-filtered pix2pix training job.')
-    parser.add_argument('--prompt',default='')
-    parser.add_argument('--epochs',type=int,default=20)
-    parser.add_argument('--structure',type=float,default=.65)
-    parser.add_argument('--export-current',action='store_true')
-    args=parser.parse_args()
-    if args.export_current:
-        print(f'Exported {export_current_results()} full-resolution results.')
-        raise SystemExit(0)
-    selected=matching_ids(args.prompt)
-    all_ids={int(record['objectid']) for record in load_records()}
-    if not selected: raise SystemExit('The prompt does not match any artworks.')
-    start(sorted(all_ids-selected),args.epochs,args.prompt,args.structure)
-    previous=None
-    while True:
-        current=status();message=current.get('message','')
-        if message!=previous: print(message,flush=True);previous=message
-        if current.get('state') in {'complete','error','stopped'}: break
-        time.sleep(1)

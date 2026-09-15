@@ -12,12 +12,10 @@ from tkinter import filedialog, messagebox, ttk
 
 from PIL import Image, ImageTk
 
-import live_training
-from lab import thumbnail_atlas
-from nga_pipeline import IMAGES, OUT, load_records, square
+from . import training
+from .data import IMAGES, OUT, load_records, square, thumbnail_atlas
 
 
-ROOT = Path(__file__).resolve().parent
 WORKS_PATH = OUT / "works.json"
 BG = "#000000"
 FG = "#f2f2ee"
@@ -631,7 +629,7 @@ class Studio:
         self.draw_scene()
 
     def prompt_matches(self):
-        return live_training.matching_ids(self.prompt.get())
+        return training.matching_ids(self.prompt.get())
 
     def update_keyword_highlights(self,_event=None):
         self.keyword_matches=self.prompt_matches() if self.prompt.get().strip() else None
@@ -682,21 +680,21 @@ class Studio:
         try:
             epochs = max(1, min(200, int(self.epochs.get())))
             excluded=self.removed if run_removed is None else run_removed
-            live_training.start(sorted(excluded), epochs, self.prompt.get(), self.structure.get())
+            training.start(sorted(excluded), epochs, self.prompt.get(), self.structure.get())
             self.follow_latest = True
             self.message.configure(text="Training queued.")
         except Exception as error:
             messagebox.showerror("Unable to start training", str(error), parent=self.root)
 
     def stop_training(self):
-        if not live_training.stop():
+        if not training.stop():
             self.message.configure(text="No training run is active in this desktop process.")
 
     def run_path(self, state):
         return OUT / "live" / str(state.get("run_id", ""))
 
     def load_epoch(self, epoch):
-        state = live_training.status()
+        state = training.status()
         path = self.run_path(state) / "frames" / f"epoch_{int(epoch):03d}.png"
         if not path.exists():
             return
@@ -760,7 +758,7 @@ class Studio:
         object_id=self.result_ids[index];record=self.record_map.get(object_id)
         if not record:return
         original=Image.fromarray(square(IMAGES/record['localfile'],512))
-        state=live_training.status();path=self.run_path(state)/'generated'/f'{object_id}.jpg'
+        state=training.status();path=self.run_path(state)/'generated'/f'{object_id}.jpg'
         if path.exists():generated=Image.open(path).convert('RGB')
         elif self.result_atlas is not None:
             sx,sy=(index%32)*64,(index//32)*64
@@ -769,7 +767,7 @@ class Studio:
         ComparisonViewer(self.root,record.get('title') or 'Untitled',original,generated)
 
     def export_results(self):
-        state=live_training.status()
+        state=training.status()
         run=self.run_path(state)
         frames=state.get('frames') or []
         if not run.exists() or not frames:
@@ -806,7 +804,7 @@ class Studio:
                             f"{generated_count} generated artworks to:\n{destination}",parent=self.root)
 
     def open_large_result(self):
-        state=live_training.status()
+        state=training.status()
         frames=state.get('frames') or []
         if not frames:
             messagebox.showerror("No mean result","Generate a result before opening the large view.",parent=self.root)
@@ -820,7 +818,7 @@ class Studio:
 
     def poll_training(self):
         try:
-            state = live_training.status()
+            state = training.status()
             active = state.get("state") in {"queued", "preparing", "training", "generating"}
             self.generate_button.state(["disabled"] if active else ["!disabled"])
             self.stop_button.state(["!disabled"] if active else ["disabled"])
@@ -853,7 +851,7 @@ class Studio:
 def smoke_test():
     document = json.loads(WORKS_PATH.read_text(encoding="utf-8"))
     atlas = Image.open(io.BytesIO(thumbnail_atlas()))
-    state = live_training.status()
+    state = training.status()
     result = {"works": len(document["works"]), "atlas": list(atlas.size), "training_state": state.get("state")}
     if result["works"] != 1000 or result["atlas"] != [1280, 3200]:
         raise SystemExit(f"Unexpected desktop data: {result}")
