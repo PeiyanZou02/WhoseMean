@@ -18,6 +18,47 @@ authoritative anchors. `a870ad8` is also the tip of `main`.
 
 ---
 
+## Iteration 1.1 — dark, Apple-influenced interface
+
+Goal: keep the monochrome constraint but move the studio onto a black
+ground and borrow Apple's HIG proportions.
+
+| Commit | Change | Status |
+| --- | --- | --- |
+| `cfc04b0` | dark theme across `theme.py`, `app.py`, `data.py` | complete |
+
+What changed: Apple's system greys at the dark end of the ramp, elevation
+by lightening rather than by shadow, white reserved as the single
+strongest emphasis, San Francisco leading both font stacks, HIG-named
+type roles with more generous leading, macOS control radii, and sentence
+case in place of letterspaced capitals throughout.
+
+Three defects fixed in the same pass: axis labels were drawn under the
+thumbnails and are now drawn last on their own chips; the default window
+was wider than a 1440px laptop screen and is now clamped to the display;
+and thumbnails letterboxed onto a near-white pad that ringed every
+non-square work on a black stage — `square()` now takes an explicit pad
+colour and only the atlas passes black, so recorded feature coordinates
+are untouched.
+
+Verified: `py_compile`; the palette re-checked mechanically (16 distinct
+hex values, all chroma <= 12); the headless smoke harness run under
+`xvfb-run` with a 1,000-work synthetic collection, exercising every
+training state, both viewers, the sidebar scroll and the minimum window
+size without exceptions; screenshots captured and inspected.
+
+Still unverified: everything requiring torch or CUDA, and font resolution
+on macOS and Windows (observed on Linux only, where the stack falls
+through to DejaVu Sans — a Mac will pick up SF Pro and look closer to the
+intended design than these screenshots do).
+
+Known cosmetic inconsistency left in place: the artwork and comparison
+viewers still letterbox onto the light feature pad, so a work opened at
+512px keeps its pale surround. That is deliberate — those windows show
+what the model is actually fed.
+
+---
+
 ## Iteration 1 — branch `iteration1`
 
 Goal: deepen the conceptual framing with HCI literature, replace the
