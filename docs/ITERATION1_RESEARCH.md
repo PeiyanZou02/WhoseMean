@@ -7,7 +7,7 @@ Peiyan Zou · ADV 9672 · branch `iteration1` · September 2026
 
 ## 0. How to read this document
 
-Section 1 is a precise, code-level account of what the current build actually does — not what the README says it does. Section 2 is the conceptual diagnosis that follows from that account. Sections 3–9 are the literature, organised by the design decision each body of work informs. Section 10 is the annotated bibliography with full citations. Section 11 flags what I could **not** verify.
+Section 1 is a precise, code-level account of what the current build actually does — not what the README says it does. It is deliberately conceptual in emphasis; for the line-by-line engineering treatment (20 concrete defects, measured timings, remediation backlog) see the companion `ITERATION1_CODE_AUDIT.md`, produced in parallel. Where the two documents touch the same code, the audit's measured numbers take precedence over the estimates here, and I have adopted them below. Section 2 is the conceptual diagnosis that follows from that account. Sections 3–9 are the literature, organised by the design decision each body of work informs. Section 10 is the annotated bibliography with full citations. Section 11 flags what I could **not** verify.
 
 Every citation in Section 10 was checked against a primary or authoritative secondary source during this research pass. Where a bibliographic detail (usually a journal name) could not be confirmed, it is marked `[UNVERIFIED VENUE]` rather than guessed.
 
