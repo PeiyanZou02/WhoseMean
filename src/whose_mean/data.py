@@ -146,11 +146,21 @@ def load_records() -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def square(path: Path, size: int) -> np.ndarray:
+#: Letterbox colour used when squaring a work for FEATURE extraction. It is
+#: part of the recorded coordinates, so it must not change without recomputing
+#: every work's position.
+FEATURE_PAD = (238, 236, 230)
+
+#: Letterbox colour for thumbnails shown on the studio's black stage, where a
+#: light pad would ring every non-square work.
+STAGE_PAD = (0, 0, 0)
+
+
+def square(path: Path, size: int, pad: tuple[int, int, int] = FEATURE_PAD) -> np.ndarray:
     with Image.open(path) as source:
         image = ImageOps.exif_transpose(source).convert("RGB")
         image = ImageOps.contain(image, (size, size), Image.Resampling.LANCZOS)
-        canvas = Image.new("RGB", (size, size), (238, 236, 230))
+        canvas = Image.new("RGB", (size, size), pad)
         canvas.paste(image, ((size - image.width) // 2, (size - image.height) // 2))
         return np.asarray(canvas).copy()
 
@@ -210,11 +220,11 @@ def thumbnail_atlas() -> bytes:
     records = {int(record["objectid"]): record for record in load_records()}
     tile, columns = 64, 20
     rows = (len(works) + columns - 1) // columns
-    atlas = Image.new("RGB", (columns * tile, rows * tile), (238, 236, 230))
+    atlas = Image.new("RGB", (columns * tile, rows * tile), STAGE_PAD)
     for index, work in enumerate(works):
         record = records.get(int(work["id"]))
         if record:
-            atlas.paste(Image.fromarray(square(IMAGES / record["localfile"], tile)), ((index % columns) * tile, (index // columns) * tile))
+            atlas.paste(Image.fromarray(square(IMAGES / record["localfile"], tile, STAGE_PAD)), ((index % columns) * tile, (index // columns) * tile))
     buffer = io.BytesIO()
     atlas.save(buffer, format="JPEG", quality=82, optimize=True)
     return buffer.getvalue()

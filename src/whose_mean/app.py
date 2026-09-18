@@ -38,12 +38,12 @@ LINE = COLOR.divider
 
 
 class Eyebrow(tk.Frame):
-    """A section header: a quiet uppercase label with an optional hint."""
+    """A section header: a quiet sentence-case label with an optional hint."""
 
     def __init__(self, master, text, hint=None, background=None):
         background = background or COLOR.surface
         super().__init__(master, bg=background)
-        self.label = tk.Label(self, text=text.upper(), bg=background, fg=COLOR.text_muted,
+        self.label = tk.Label(self, text=text, bg=background, fg=COLOR.text_muted,
                               font=theme.font("label"), anchor="w")
         self.label.pack(side="left")
         self.hint = tk.Label(self, text=hint or "", bg=background, fg=COLOR.text_muted,
@@ -76,7 +76,7 @@ class KeyValueList(tk.Frame):
             self._rows.append((key, value))
         for index, (key, value) in enumerate(self._rows):
             if index < len(rows):
-                key.configure(text=str(rows[index][0]).upper())
+                key.configure(text=str(rows[index][0]))
                 value.configure(text=str(rows[index][1]))
                 key.grid()
                 value.grid()
@@ -104,7 +104,7 @@ class StatusBadge(tk.Canvas):
         self.bind("<Configure>", lambda _event: self.draw())
 
     def set(self, text, tone="idle"):
-        self.text = str(text).upper()
+        self.text = str(text)
         self.tone = tone if tone in self.TONES else "idle"
         self.draw()
 
@@ -342,7 +342,7 @@ class ZoomPane(tk.Frame):
 
     def __init__(self, master, title, wheel_command):
         super().__init__(master, bg=COLOR.surface)
-        tk.Label(self, text=title.upper(), bg=COLOR.surface, fg=COLOR.text_muted,
+        tk.Label(self, text=title, bg=COLOR.surface, fg=COLOR.text_muted,
                  font=theme.font("label"), anchor="w").pack(anchor="w", pady=(0, SPACE["sm"]))
         holder = tk.Frame(self, bg=COLOR.surface, highlightbackground=COLOR.border,
                           highlightcolor=COLOR.border, highlightthickness=BORDER["thin"])
@@ -526,7 +526,7 @@ class ArtworkViewer(AttachedToplevel):
         info = tk.Frame(body, bg=COLOR.surface, width=320)
         info.pack(side="right", fill="y")
         info.pack_propagate(False)
-        tk.Label(info, text="ARTWORK INFORMATION", bg=COLOR.surface, fg=COLOR.text_muted,
+        tk.Label(info, text="Artwork information", bg=COLOR.surface, fg=COLOR.text_muted,
                  font=theme.font("label"), anchor="w").pack(fill="x", pady=(0, SPACE["sm"]))
         well = tk.Frame(info, bg=COLOR.surface, highlightbackground=COLOR.border,
                         highlightcolor=COLOR.border, highlightthickness=BORDER["thin"])
@@ -547,7 +547,7 @@ class ArtworkViewer(AttachedToplevel):
         for label, key, default in self.FIELDS:
             value = record.get(key)
             value = str(value) if value not in (None, "") else default
-            text.insert("end", f"{label.upper()}\n", "key")
+            text.insert("end", f"{label}\n", "key")
             text.insert("end", f"{value}\n", "value")
         text.configure(state="disabled")
 
@@ -588,7 +588,14 @@ class Studio:
     def __init__(self, root: tk.Tk):
         self.root = root
         root.title("Whose Mean? · Peiyan Zou · ADV 9672 · W3 Reading Response")
-        root.geometry(f'{METRIC["default_window_width"]}x{METRIC["default_window_height"]}')
+        width = METRIC["default_window_width"]
+        height = METRIC["default_window_height"]
+        try:  # never open wider or taller than the display we launched on
+            width = min(width, max(METRIC["min_window_width"], root.winfo_screenwidth() - 80))
+            height = min(height, max(METRIC["min_window_height"], root.winfo_screenheight() - 120))
+        except tk.TclError:  # pragma: no cover - exotic Tk builds
+            pass
+        root.geometry(f"{width}x{height}")
         root.minsize(METRIC["min_window_width"], METRIC["min_window_height"])
         root.configure(bg=COLOR.app)
 
@@ -873,7 +880,7 @@ class Studio:
         def zoom_group(title, minus, plus):
             group = tk.Frame(footer, bg=COLOR.surface)
             group.pack(side="right", padx=(SPACE["lg"], 0))
-            tk.Label(group, text=title.upper(), bg=COLOR.surface, fg=COLOR.text_muted,
+            tk.Label(group, text=title, bg=COLOR.surface, fg=COLOR.text_muted,
                      font=theme.font("label")).pack(side="left", padx=(0, SPACE["sm"]))
             ttk.Button(group, text="−", style="Quiet.TButton", width=3, command=minus).pack(
                 side="left")
@@ -951,20 +958,44 @@ class Studio:
     def axis_point(self, x, y, z):
         return self.project({"x": x, "y": y, "z": z})[:2]
 
+    AXES = (((-1.12, 0, 0), (1.12, 0, 0), "Warmth  R−B"),
+            ((0, -1.12, 0), (0, 1.12, 0), "Luminance"),
+            ((0, 0, -1.12), (0, 0, 1.12), "Edge density"))
+
     def draw_axis(self, start, end, label):
+        """Draw one axis line and return where its label belongs.
+
+        The label itself is drawn in a later pass: the thumbnails are dense
+        enough that anything under them becomes unreadable.
+        """
         a, b = self.axis_point(*start), self.axis_point(*end)
         self.scene.create_line(*a, *b, fill=COLOR.axis, width=BORDER["thin"], arrow=tk.LAST)
-        self.scene.create_text(b[0] + SPACE["sm"], b[1] - SPACE["sm"] - 1, text=label,
-                               fill=COLOR.axis_label, anchor="w", font=theme.font("label"))
+        return (b[0] + SPACE["sm"], b[1] - SPACE["sm"] - 1, label)
+
+    def draw_axis_labels(self, placements):
+        """Axis labels, above the collection and set on their own small chips.
+
+        A chip rather than an outline: over a thousand thumbnails, haloed text
+        still breaks up, and a quiet filled shape is what reads.
+        """
+        font = theme.font("label")
+        pad_x, pad_y = SPACE["sm"], SPACE["xs"]
+        for x, y, label in placements:
+            width = font.measure(label)
+            height = font.metrics("linespace")
+            theme.rounded_rect(self.scene, x - pad_x, y - height / 2 - pad_y,
+                               x + width + pad_x, y + height / 2 + pad_y,
+                               radius=RADIUS["sm"], fill=COLOR.stage,
+                               outline=COLOR.axis, width=BORDER["hairline"])
+            self.scene.create_text(x, y, text=label, fill=COLOR.axis_label,
+                                   anchor="w", font=font)
 
     def draw_scene(self):
         if not hasattr(self, "small_photos"):
             return
         self.scene.delete("all")
         self.scene_refs = []
-        self.draw_axis((-1.12, 0, 0), (1.12, 0, 0), "X  WARMTH  R−B")
-        self.draw_axis((0, -1.12, 0), (0, 1.12, 0), "Y  LUMINANCE")
-        self.draw_axis((0, 0, -1.12), (0, 0, 1.12), "Z  EDGE DENSITY")
+        axis_labels = [self.draw_axis(start, end, label) for start, end, label in self.AXES]
         self.projected = []
         for index, work in enumerate(self.works):
             x, y, z = self.project(work)
@@ -993,6 +1024,7 @@ class Studio:
             hovered_row = next((row for row in self.projected if int(row[4]["id"]) == self.hovered), None)
             if hovered_row is not None:
                 self.draw_work(hovered_row)
+        self.draw_axis_labels(axis_labels)
         self.draw_stage_hint()
 
     def draw_stage_hint(self):

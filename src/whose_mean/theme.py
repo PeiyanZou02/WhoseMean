@@ -1,9 +1,18 @@
 """Design tokens and Tk/ttk styling helpers for the Whose Mean studio.
 
-The studio uses a strictly monochrome system: a single neutral tonal ramp,
-one sans-serif family resolved at runtime, an 8px spacing rhythm, and a small
-set of radii, border widths and motion durations. Nothing in the interface
-carries hue; emphasis is expressed through value, weight, fill and border.
+The studio uses a strictly monochrome system on a black ground: a single
+neutral tonal ramp, one sans-serif family resolved at runtime, an 8px spacing
+rhythm, and a small set of radii, border widths and motion durations. Nothing
+in the interface carries hue; emphasis is expressed through value, weight,
+fill and border.
+
+The proportions follow Apple's Human Interface Guidelines for a dark
+appearance: true black behind everything, panels that lift by getting
+*lighter* rather than by casting shadows, hairline separators at low
+contrast, generously rounded controls, sentence-case labels, and white
+reserved as the single strongest emphasis. The neutral steps are Apple's
+system greys, which carry a trace of blue (chroma <= 5) so large dark fields
+do not read muddy; they remain monochrome for every practical purpose.
 
 Everything here is pure standard library (tkinter/ttk) so the module can be
 imported and partially exercised without a display.
@@ -18,69 +27,80 @@ from tkinter import ttk
 
 # ---------------------------------------------------------------------------
 # Colour: one neutral ramp, 0 (white) to 1000 (black).
+#
+# The dark end of the ramp is Apple's system grey sequence, which is what
+# gives a dark interface its sense of layering: each elevation step is a
+# measurably lighter grey rather than a shadow.
 # ---------------------------------------------------------------------------
 
 NEUTRAL: dict[int, str] = {
     0: "#ffffff",
-    25: "#fbfbfa",
-    50: "#f7f7f6",
-    100: "#f1f1f0",
-    150: "#e8e8e6",
-    200: "#dededc",
-    300: "#c9c9c6",
-    400: "#adadaa",
-    500: "#8c8c89",
-    600: "#6d6d6a",
-    700: "#52524f",
-    800: "#3a3a38",
-    900: "#232322",
-    950: "#161615",
+    25: "#f5f5f7",
+    50: "#e8e8ed",
+    100: "#d2d2d7",
+    200: "#aeaeb2",
+    300: "#8e8e93",    # systemGray
+    400: "#6e6e73",
+    500: "#545458",
+    600: "#48484a",    # systemGray4 (dark)
+    700: "#3a3a3c",    # systemGray5 (dark)
+    800: "#2c2c2e",    # systemGray6 (dark)
+    850: "#212123",
+    900: "#1c1c1e",    # secondarySystemBackground (dark)
+    950: "#141416",
+    975: "#0a0a0b",
     1000: "#000000",
 }
 
 
 @dataclass(frozen=True)
 class Palette:
-    """Semantic colour roles. Only greys, by design."""
+    """Semantic colour roles. Only greys, by design.
+
+    Elevation runs *upwards into light*: the window ground is true black, the
+    sidebar sits one step above it, and fields and cards one step above that.
+    White is spent sparingly — primary actions, the active segment, selection
+    marks and nothing else — so it keeps its force.
+    """
 
     # Surfaces
-    app: str = NEUTRAL[50]            # window chrome behind everything
-    surface: str = NEUTRAL[0]         # panels, cards, sidebars
-    surface_sunken: str = NEUTRAL[100]  # wells, inactive tabs, tracks
-    surface_raised: str = NEUTRAL[0]
-    stage: str = NEUTRAL[0]           # the artwork canvas itself
-    overlay: str = NEUTRAL[950]       # inverted chips and badges
+    app: str = NEUTRAL[1000]          # window chrome behind everything
+    surface: str = NEUTRAL[950]       # panels, cards, sidebars
+    surface_sunken: str = NEUTRAL[975]  # wells, inactive tabs, tracks
+    surface_raised: str = NEUTRAL[900]  # fields and controls sitting on surface
+    stage: str = NEUTRAL[1000]        # the artwork canvas itself
+    overlay: str = NEUTRAL[0]         # inverted chips and badges
 
     # Lines
-    divider: str = NEUTRAL[150]       # low-contrast hairlines between regions
-    border: str = NEUTRAL[200]        # resting control borders
-    border_strong: str = NEUTRAL[300]  # hovered / emphasised borders
-    focus: str = NEUTRAL[900]         # keyboard focus ring
+    divider: str = NEUTRAL[850]       # low-contrast hairlines between regions
+    border: str = NEUTRAL[800]        # resting control borders
+    border_strong: str = NEUTRAL[700]  # hovered / emphasised borders
+    focus: str = NEUTRAL[0]           # keyboard focus ring
 
     # Text
-    text: str = NEUTRAL[900]          # high-contrast body and headings
-    text_secondary: str = NEUTRAL[600]
-    text_muted: str = NEUTRAL[500]
-    text_disabled: str = NEUTRAL[400]
-    text_inverse: str = NEUTRAL[0]
+    text: str = NEUTRAL[0]            # high-contrast body and headings
+    text_secondary: str = NEUTRAL[300]
+    text_muted: str = NEUTRAL[400]
+    text_disabled: str = NEUTRAL[600]
+    text_inverse: str = NEUTRAL[1000]
 
     # Emphasis ("accent" without hue)
-    accent: str = NEUTRAL[900]
-    accent_hover: str = NEUTRAL[800]
-    accent_pressed: str = NEUTRAL[1000]
-    accent_disabled: str = NEUTRAL[200]
+    accent: str = NEUTRAL[0]
+    accent_hover: str = NEUTRAL[25]
+    accent_pressed: str = NEUTRAL[100]
+    accent_disabled: str = NEUTRAL[800]
 
     # Quiet interactive fills
-    hover: str = NEUTRAL[100]
-    pressed: str = NEUTRAL[150]
-    selected: str = NEUTRAL[150]
-    disabled_fill: str = NEUTRAL[100]
+    hover: str = NEUTRAL[850]
+    pressed: str = NEUTRAL[800]
+    selected: str = NEUTRAL[800]
+    disabled_fill: str = NEUTRAL[900]
 
     # Artwork stage marks
-    axis: str = NEUTRAL[300]
-    axis_label: str = NEUTRAL[500]
-    link: str = NEUTRAL[900]
-    mark: str = NEUTRAL[900]
+    axis: str = NEUTRAL[800]
+    axis_label: str = NEUTRAL[400]
+    link: str = NEUTRAL[0]
+    mark: str = NEUTRAL[0]
 
 
 COLOR = Palette()
@@ -90,13 +110,18 @@ COLOR = Palette()
 # Typography: sans-serif only, resolved at runtime with graceful fallbacks.
 # ---------------------------------------------------------------------------
 
+# San Francisco first, so the interface picks up Apple's own text face when it
+# is running on a Mac; Inter is the closest widely installed substitute
+# elsewhere, then each platform's system sans.
 SANS_STACK: tuple[str, ...] = (
+    "SF Pro Text",
+    "SF Pro Display",
+    ".AppleSystemUIFont",
+    "Helvetica Neue",
     "Inter",
     "Inter Display",
     "Segoe UI Variable Text",
     "Segoe UI",
-    "SF Pro Text",
-    "Helvetica Neue",
     "Noto Sans",
     "DejaVu Sans",
     "Liberation Sans",
@@ -108,10 +133,11 @@ SANS_STACK: tuple[str, ...] = (
 # platform has one, so the "mono" stack starts with sans faces that ship with
 # tabular figures and only then falls back to a true monospace face.
 NUMERIC_STACK: tuple[str, ...] = (
+    "SF Pro Text",
+    "Helvetica Neue",
     "Inter",
     "Segoe UI Variable Text",
     "Segoe UI",
-    "SF Pro Text",
     "DejaVu Sans",
     "Liberation Sans",
     "Arial",
@@ -134,18 +160,20 @@ class TypeSpec:
 
 
 # Sizes are Tk point sizes; the ramp is deliberately short so hierarchy stays
-# legible: two display steps, one body step, two support steps.
+# legible: two display steps, one body step, two support steps. The roles are
+# named after the HIG text styles they stand in for, and the leading is set
+# generously in the same spirit — Apple's dark interfaces breathe.
 TYPE: dict[str, TypeSpec] = {
-    "display": TypeSpec(size=17, weight="bold", leading=24),
-    "title": TypeSpec(size=13, weight="bold", leading=20),
-    "heading": TypeSpec(size=11, weight="bold", leading=18),
-    "body": TypeSpec(size=10, weight="normal", leading=17),
-    "body_strong": TypeSpec(size=10, weight="bold", leading=17),
-    "label": TypeSpec(size=9, weight="bold", leading=14),    # section eyebrows
-    "caption": TypeSpec(size=9, weight="normal", leading=14),
-    "micro": TypeSpec(size=8, weight="normal", leading=12),
-    "numeric": TypeSpec(size=10, weight="normal", leading=16),
-    "numeric_strong": TypeSpec(size=14, weight="bold", leading=20),
+    "display": TypeSpec(size=18, weight="bold", leading=26),   # Large Title
+    "title": TypeSpec(size=13, weight="bold", leading=21),     # Title 3
+    "heading": TypeSpec(size=11, weight="bold", leading=18),   # Headline
+    "body": TypeSpec(size=10, weight="normal", leading=18),    # Body
+    "body_strong": TypeSpec(size=10, weight="bold", leading=18),
+    "label": TypeSpec(size=9, weight="bold", leading=15),      # section headers
+    "caption": TypeSpec(size=9, weight="normal", leading=15),  # Footnote
+    "micro": TypeSpec(size=8, weight="normal", leading=13),    # Caption 2
+    "numeric": TypeSpec(size=10, weight="normal", leading=17),
+    "numeric_strong": TypeSpec(size=14, weight="bold", leading=21),
 }
 
 _NUMERIC_ROLES = {"numeric", "numeric_strong"}
@@ -168,7 +196,9 @@ SPACE: dict[str, int] = {
     "xxxl": 48,
 }
 
-RADIUS: dict[str, int] = {"none": 0, "sm": 4, "md": 8, "lg": 12, "pill": 999}
+# Corner radii follow macOS proportions: ~6px on controls, ~10-12px on cards
+# and wells, a true capsule for pills.
+RADIUS: dict[str, int] = {"none": 0, "sm": 6, "md": 10, "lg": 14, "xl": 18, "pill": 999}
 
 BORDER: dict[str, int] = {"hairline": 1, "thin": 1, "thick": 2}
 
@@ -176,16 +206,18 @@ METRIC: dict[str, int] = {
     "header_height": 64,
     "footer_height": 44,
     "sidebar_width": 380,
-    "control_height": 32,
-    "control_height_lg": 38,
+    "control_height": 30,
+    "control_height_lg": 36,
     "slider_height": 28,
     "slider_track": 4,
     "slider_knob": 16,
     "progress_height": 6,
     "min_window_width": 1120,
     "min_window_height": 720,
-    "default_window_width": 1480,
-    "default_window_height": 880,
+    # Kept inside a 1440x900 laptop display; the studio also clamps this to the
+    # screen at startup.
+    "default_window_width": 1360,
+    "default_window_height": 840,
     "mean_preview_height": 208,
     "outputs_height": 300,
 }
@@ -419,7 +451,7 @@ def setup_styles(root: tk.Misc) -> ttk.Style:
     )
 
     # --- fields ----------------------------------------------------------
-    style.configure("Search.TEntry", fieldbackground=COLOR.surface, background=COLOR.surface,
+    style.configure("Search.TEntry", fieldbackground=COLOR.surface_raised, background=COLOR.surface_raised,
                     foreground=COLOR.text, insertcolor=COLOR.text, bordercolor=COLOR.border,
                     lightcolor=COLOR.border, darkcolor=COLOR.border, borderwidth=BORDER["thin"],
                     relief="flat", padding=(SPACE["sm"], SPACE["sm"] - 1), font=body)
@@ -431,7 +463,7 @@ def setup_styles(root: tk.Misc) -> ttk.Style:
         foreground=[("disabled", COLOR.text_disabled)],
     )
 
-    style.configure("Studio.TSpinbox", fieldbackground=COLOR.surface, background=COLOR.surface,
+    style.configure("Studio.TSpinbox", fieldbackground=COLOR.surface_raised, background=COLOR.surface_raised,
                     foreground=COLOR.text, bordercolor=COLOR.border, lightcolor=COLOR.border,
                     darkcolor=COLOR.border, arrowcolor=COLOR.text_secondary,
                     arrowsize=11, borderwidth=BORDER["thin"], relief="flat",
@@ -460,21 +492,21 @@ def setup_styles(root: tk.Misc) -> ttk.Style:
     )
 
     # --- scrollbars ------------------------------------------------------
-    style.configure("Studio.Vertical.TScrollbar", background=COLOR.border,
+    style.configure("Studio.Vertical.TScrollbar", background=COLOR.border_strong,
                     troughcolor=COLOR.surface, bordercolor=COLOR.surface,
                     arrowcolor=COLOR.text_muted, lightcolor=COLOR.surface,
                     darkcolor=COLOR.surface, borderwidth=0, relief="flat", arrowsize=12, width=10)
     style.map("Studio.Vertical.TScrollbar",
-              background=[("pressed", COLOR.text_muted), ("active", COLOR.border_strong)])
-    style.configure("Studio.Horizontal.TScrollbar", background=COLOR.border,
+              background=[("pressed", COLOR.text_secondary), ("active", COLOR.text_muted)])
+    style.configure("Studio.Horizontal.TScrollbar", background=COLOR.border_strong,
                     troughcolor=COLOR.surface, bordercolor=COLOR.surface,
                     arrowcolor=COLOR.text_muted, lightcolor=COLOR.surface,
                     darkcolor=COLOR.surface, borderwidth=0, relief="flat", arrowsize=12, width=10)
     style.map("Studio.Horizontal.TScrollbar",
-              background=[("pressed", COLOR.text_muted), ("active", COLOR.border_strong)])
+              background=[("pressed", COLOR.text_secondary), ("active", COLOR.text_muted)])
 
-    style.configure("Studio.Horizontal.TProgressbar", troughcolor=COLOR.surface_sunken,
-                    background=COLOR.accent, bordercolor=COLOR.surface_sunken,
+    style.configure("Studio.Horizontal.TProgressbar", troughcolor=COLOR.surface_raised,
+                    background=COLOR.accent, bordercolor=COLOR.surface_raised,
                     lightcolor=COLOR.accent, darkcolor=COLOR.accent, borderwidth=0, thickness=6)
 
     style.configure("Divider.TSeparator", background=COLOR.divider)
