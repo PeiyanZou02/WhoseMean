@@ -23,6 +23,7 @@ Effort is in **focused working days** for one person already familiar with the c
 | Phase | Deliverable | Effort | Blocks |
 |---|---|---|---|
 | **P0** Ground truth | Benchmarks, pinned deps, hardware decision, `DATASET.md` | **1 d** | everything |
+| **P0b** Audit backlog | The code audit's P0 (correctness) + the performance half of its P1: persist the atlas, cache 512 px tensors, debounce/vectorise the keyword path, retained-mode canvas | **3–4 d** | P1, and every latency claim |
 | **P1** Feature layer | `embeddings.py`, `projection.py`; semantic space replaces photometric axes; semantic search replaces the alias table | **4 d** | P2, P3 |
 | **P2** Whose? | `provenance.py` + the provenance panel + attribution ("which works pulled this mean") | **3 d** | — |
 | **P3** Means abstraction | `means.py` with M1/M2 + retrieval-M3; mean-strategy selector in the UI; **this is where the piece becomes the piece** | **3 d** | P4 |
@@ -30,7 +31,7 @@ Effort is in **focused working days** for one person already familiar with the c
 | **P5** Slow means | LoRA (M4) and textual inversion (M5) as background jobs; job queue refactor of `training.py` | **5 d** | — |
 | **P6** Comparison & exhibition | Run history, branching, side-by-side, export, kiosk mode, wall text | **3 d** | P7 |
 | **P7** Study & write-up | Pilot + 12–16 participants, analysis, paper/pictorial draft | **8 d** | — |
-| | **Total** | **33 d** | |
+| | **Total** | **36–37 d** | |
 
 **Order matters.** P1→P3 delivers a coherent, defensible artwork *with no diffusion model at all*. If the schedule collapses, stopping after P3 still yields something honest and exhibitable. P4/P5 are the upside, not the foundation. Do not invert this.
 
@@ -359,9 +360,10 @@ In order. Cut from the bottom up and stop when the schedule fits.
 
 ## 9. Immediate next actions (P0, one day)
 
-1. Benchmark one epoch of the current pix2pix loop on the actual target GPU. Record seconds/epoch. Every latency claim in these documents depends on that one number.
+1. Benchmark one epoch of the current pix2pix loop on the actual target GPU, and separately time the data path alone (decode + resize for 1000 works). Record both. Every latency claim in these documents depends on those two numbers, and the audit's reading is that the second will dominate the first.
 2. Name the target hardware, including the exhibition machine.
 3. Pin `requirements.txt` to exact versions; split out a `[generate]` extra.
 4. Verify the NGA CSV column names for `beginyear` / `endyear` and inspect `constituents.csv` for nationality and life dates.
 5. Write `docs/DATASET.md` following the *Collections as ML Data* checklist (Lee et al. 2025): the four upstream filters, the seed, the counts, the CC0 licence, the known exclusions.
 6. Confirm the outstanding citations listed in `ITERATION1_RESEARCH.md` §11 before anything is submitted anywhere.
+7. Triage the code audit's P0 list against this plan: some of its items (e.g. the keyword alias table, the hard CUDA failure, the hard-coded `smoke_test` constants) are superseded here rather than patched, and fixing them twice is waste.

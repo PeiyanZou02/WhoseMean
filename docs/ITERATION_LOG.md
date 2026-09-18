@@ -30,6 +30,9 @@ rebuild the interface in a monochrome sans-serif design system.
 | `c236c8d` | `docs/ITERATION1_CODE_AUDIT.md` — engineering audit of v1.0 | complete |
 | `90892bb` | `docs/ITERATION1_RESEARCH.md`, `docs/ITERATION1_MODEL_LANDSCAPE.md` | snapshot |
 | `5500f65` | `src/whose_mean/theme.py` (new) + `src/whose_mean/app.py` rewrite | complete |
+| `f5f2f7b` | `docs/ITERATION1_PLAN.md` + this log | snapshot |
+| `eb74cd0` | revisions to research and model survey | snapshot |
+| `HEAD` | final research deliverable + this log brought up to date | complete |
 
 ### Note on `5500f65`
 
@@ -70,3 +73,44 @@ stacks are sans-only and resolved at runtime against
   driven with faked status payloads. Font resolution was observed on
   Linux only. Stage rendering was judged with noise tiles, not real NGA
   thumbnails.
+
+### Research findings
+
+`ITERATION1_RESEARCH.md` and `ITERATION1_MODEL_LANDSCAPE.md` reach the
+same diagnosis as the audit from a different direction: the central claim
+is never computed. The network is a colouriser (luma to RGB); the
+published output is `G(0.35 * luma(pixel_mean) + 0.65 * luma(medoid))`.
+Nothing in the pipeline learns a likeness. Also noted: the feature space
+is photometric rather than semantic (`saturation` and `mean_weight` are
+computed and stored but never read), keyword search is substring matching
+plus three hard-coded synonym sets, the "best" checkpoint is selected on
+training L1 with no validation split, and the `STRUCTURE ANCHOR` label
+disagrees with what it computes.
+
+The recommendation is not to replace the pixel mean but to put it in a
+series: show five means of the same selection at once, uncaptioned and
+unranked — pixel mean, medoid, embedding centroid, LoRA-fine-tuned
+likeness, and the collection inverted into a single token. Daston and
+Galison's epistemic virtues map onto medoid / centroid / fine-tune, which
+makes the citation operable rather than decorative. Galton's 1878
+composite portraiture is added as the historical anchor for the pixel
+mean. `model.py` and `training.py` are kept and relabelled "2017 mode"
+rather than deleted.
+
+Technical recommendation: SigLIP 2 So400m embeddings cached to disk as
+the feature layer (runs on CPU, replaces the photometric axes, the
+keyword alias table and the medoid in one move), then SDXL with
+IP-Adapter, ControlNet and LCM/Turbo as the generative backend — chosen
+for latency and ecosystem coexistence on one 12-24 GB card, not for
+fidelity. Fallbacks are documented for low VRAM and CPU-only. Hosted APIs
+are argued against as the primary path on conceptual grounds.
+
+### Citation caveats
+
+Section 11 of the research document lists eight items the agent could not
+verify, including a journal venue, several incomplete author lists, and
+one conference year. Figures in the model landscape are tagged verified /
+secondary-source / estimate. No GPU was available, so the current build's
+epoch wall-clock time is unmeasured; benchmarking it is the first item of
+Phase 0. **Check the flagged citations before using any of this in a
+submission.**
