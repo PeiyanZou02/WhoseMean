@@ -23,7 +23,7 @@ The current backend is a from-scratch 512 px pix2pix **colouriser** (grayscale �
 
 So the replacement has to satisfy four requirements, in priority order:
 
-1. **Sub-second feedback on a dataset edit.** The core gesture is "remove these works, see what changes". Interactive ML degrades badly above a second (Amershi et al. 2014). Today it is on the order of an hour. **[E]**
+1. **Sub-second feedback on a dataset edit.** The core gesture is "remove these works, see what changes". Interactive ML degrades badly above a second (Amershi et al. 2014). Today it is on the order of an hour **[E]** — and the bottleneck is not the network but the data path: 20 000 redundant JPEG decodes per default run, batch size 1, plus an uncached full-collection decode before every run (`ITERATION1_CODE_AUDIT.md` §3.4). **A faster model on the same data path will not fix this.** The I/O and caching work in §3.4 / §4.1 of that audit is a hard prerequisite for any claim made below.
 2. **A learned prior.** The whole thesis is about statistical likeness. A model that has never seen anything but 1000 NGA images cannot produce one; a pretrained model conditioned on those 1000 images can.
 3. **The "mean" must be a first-class computation, not a preprocessing artefact.** It should be something the model consumes (an embedding, a token, a set of weights), not a blurred JPEG fed to a colouriser.
 4. **Runs on one consumer GPU, offline, reproducibly, at an exhibition.** No API key in a gallery, no internet dependency during a show.

@@ -2,7 +2,9 @@
 
 Peiyan Zou · ADV 9672 · branch `iteration1` · September 2026
 
-Companion documents: `ITERATION1_RESEARCH.md` (literature and conceptual argument), `ITERATION1_MODEL_LANDSCAPE.md` (model survey and recommendation).
+Companion documents: `ITERATION1_RESEARCH.md` (literature and conceptual argument), `ITERATION1_MODEL_LANDSCAPE.md` (model survey and recommendation), `ITERATION1_CODE_AUDIT.md` (line-level engineering audit: 20 defects, measured timings, prioritised remediation backlog).
+
+> **Relationship to the code audit.** The audit's P0/P1 backlog and this plan are complementary, not alternative. The audit fixes what is broken; this plan changes what the work *is*. They interleave at exactly one point: **the audit's data-path and redraw work is a hard prerequisite for P1–P3 here.** A 10 ms centroid computation is invisible behind a 445 ms minimum-spanning-tree and a full canvas rebuild. Schedule the audit's P0 and the performance half of its P1 *before* Phase 1 below, or budget them into Phase 0.
 
 > **Note on concurrency.** `src/whose_mean/app.py` is being edited in parallel by another agent. Everything below that touches `app.py` is written as a *specification to be merged*, not as a patch to apply blind. The new modules in §3 are designed so that the UI depends on them, never the reverse — `app.py` should end up importing `means`, `embeddings`, `provenance` and `session`, and nothing in those modules should import Tkinter.
 
